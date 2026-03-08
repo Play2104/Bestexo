@@ -15,7 +15,7 @@ gui.Name = "BestexoHubMobile_Final"
 gui.Parent = game.CoreGui
 gui.ResetOnSpawn = false
 
--- BOUTON MENU
+-- BOUTON MENU (Haut Gauche)
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0, 100, 0, 40)
 toggle.Position = UDim2.new(0, 10, 0, 10)
@@ -26,9 +26,21 @@ toggle.TextColor3 = Color3.new(1, 1, 1)
 toggle.Font = Enum.Font.SourceSansBold
 toggle.Parent = gui
 
+-- BOUTON SCAM RAPIDE (Haut Droite)
+local quickScam = Instance.new("TextButton")
+quickScam.Size = UDim2.new(0, 100, 0, 40)
+quickScam.Position = UDim2.new(1, -110, 0, 10)
+quickScam.BackgroundColor3 = Color3.fromRGB(0, 85, 255)
+quickScam.BorderSizePixel = 2
+quickScam.Text = "SCAM TP"
+quickScam.TextColor3 = Color3.new(1, 1, 1)
+quickScam.Font = Enum.Font.SourceSansBold
+quickScam.Parent = gui
+Instance.new("UICorner", quickScam)
+
 -- FRAME PRINCIPALE
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 310) -- Agrandie pour le nouveau bouton
+frame.Size = UDim2.new(0, 220, 0, 310)
 frame.Position = UDim2.new(0.5, -110, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Active = true
@@ -41,7 +53,7 @@ toggle.MouseButton1Click:Connect(function()
     frame.Visible = not frame.Visible
 end)
 
--- FONCTION CREATION BOUTON
+-- FONCTION CREATION BOUTON MENU
 local function createBtn(text, pos, parent)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 200, 0, 40)
@@ -58,16 +70,16 @@ end
 
 local pingBtn = createBtn("Place Ping (Here)", UDim2.new(0, 10, 0, 15), frame)
 local tpBtn = createBtn("TP Ping", UDim2.new(0, 10, 0, 65), frame)
-local scamBtn = createBtn("Scam TP (1 sec)", UDim2.new(0, 10, 0, 115), frame)
+local scamBtnMenu = createBtn("Scam TP (1 sec)", UDim2.new(0, 10, 0, 115), frame)
 local noclipBtn = createBtn("Noclip : OFF", UDim2.new(0, 10, 0, 165), frame)
 local flyBtn = createBtn("Fly : OFF", UDim2.new(0, 10, 0, 215), frame)
 
 -------------------------------------------------
--- BOUTONS RAPIDES (DROITE)
+-- BOUTONS RAPIDES (CÔTÉ DROIT)
 -------------------------------------------------
 local sideFrame = Instance.new("Frame")
 sideFrame.Size = UDim2.new(0, 60, 0, 130)
-sideFrame.Position = UDim2.new(0.9, 0, 0.4, 0)
+sideFrame.Position = UDim2.new(0.95, -60, 0.4, 0)
 sideFrame.BackgroundTransparency = 1
 sideFrame.Parent = gui
 
@@ -89,7 +101,23 @@ local quickNoclip = createSideBtn("NOCLIP", UDim2.new(0, 0, 0, 0), Color3.fromRG
 local quickFly = createSideBtn("FLY", UDim2.new(0, 0, 0, 65), Color3.fromRGB(0, 200, 0))
 
 -------------------------------------------------
--- LOGIQUE VISUELLE PING (ESP)
+-- LOGIQUE SCAM TP (FONCTIONNELLE)
+-------------------------------------------------
+local function doScamTP()
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and pingPosition then
+        local originalPos = char.HumanoidRootPart.CFrame
+        char:SetPrimaryPartCFrame(CFrame.new(pingPosition)) -- TP au ping
+        task.wait(1) -- Attend 1 seconde
+        char:SetPrimaryPartCFrame(originalPos) -- Retour
+    end
+end
+
+quickScam.MouseButton1Click:Connect(doScamTP)
+scamBtnMenu.MouseButton1Click:Connect(doScamTP)
+
+-------------------------------------------------
+-- LOGIQUE ESP PING
 -------------------------------------------------
 local function createPingVisual(pos)
     if pingPart then pingPart:Destroy() end
@@ -113,7 +141,7 @@ local function createPingVisual(pos)
     local label = Instance.new("TextLabel", bgui)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = "PING"
+    label.Text = "SCAM POINT"
     label.TextColor3 = Color3.new(1, 1, 1)
     label.Font = Enum.Font.SourceSansBold
 end
@@ -127,10 +155,12 @@ local function updateFlyState()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     if flyEnabled then
-        bodyVel = Instance.new("BodyVelocity", char.HumanoidRootPart)
-        bodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-        bodyGyro = Instance.new("BodyGyro", char.HumanoidRootPart)
-        bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+        if not bodyVel then
+            bodyVel = Instance.new("BodyVelocity", char.HumanoidRootPart)
+            bodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+            bodyGyro = Instance.new("BodyGyro", char.HumanoidRootPart)
+            bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+        end
         char.Humanoid.PlatformStand = true
     else
         if bodyVel then bodyVel:Destroy() bodyVel = nil end
@@ -140,32 +170,31 @@ local function updateFlyState()
     flyBtn.Text = flyEnabled and "Fly : ON" or "Fly : OFF"
 end
 
-local function toggleNoclip()
-    noclipEnabled = not noclipEnabled
-    noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
-end
-
 flyBtn.MouseButton1Click:Connect(function() flyEnabled = not flyEnabled updateFlyState() end)
 quickFly.MouseButton1Click:Connect(function() flyEnabled = not flyEnabled updateFlyState() end)
-noclipBtn.MouseButton1Click:Connect(toggleNoclip)
-quickNoclip.MouseButton1Click:Connect(toggleNoclip)
+noclipBtn.MouseButton1Click:Connect(function() noclipEnabled = not noclipEnabled noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF" end)
+quickNoclip.MouseButton1Click:Connect(function() noclipEnabled = not noclipEnabled noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF" end)
 
 -------------------------------------------------
--- SCAM TP (La nouvelle fonction)
+-- RUNSERVICE (BOUCLE)
 -------------------------------------------------
-scamBtn.MouseButton1Click:Connect(function()
+RunService.RenderStepped:Connect(function()
     local char = player.Character
-    if char and char:FindFirstChild("HumanoidRootPart") and pingPosition then
-        local originalPos = char.HumanoidRootPart.CFrame
-        char:SetPrimaryPartCFrame(CFrame.new(pingPosition)) -- TP au ping
-        task.wait(1) -- Attend 1 seconde
-        char:SetPrimaryPartCFrame(originalPos) -- Retour à la base
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+    if noclipEnabled then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+
+    if flyEnabled and bodyVel and bodyGyro then
+        local cam = workspace.CurrentCamera
+        bodyVel.Velocity = (char.Humanoid.MoveDirection.Magnitude > 0) and (cam.CFrame.LookVector * flySpeed) or Vector3.new(0,0,0)
+        bodyGyro.CFrame = cam.CFrame
     end
 end)
 
--------------------------------------------------
--- AUTRES ACTIONS
--------------------------------------------------
 pingBtn.MouseButton1Click:Connect(function()
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
@@ -176,19 +205,4 @@ end)
 
 tpBtn.MouseButton1Click:Connect(function()
     if pingPosition and player.Character then player.Character:MoveTo(pingPosition) end
-end)
-
-RunService.RenderStepped:Connect(function()
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    if noclipEnabled then
-        for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
-        end
-    end
-    if flyEnabled and bodyVel and bodyGyro then
-        local cam = workspace.CurrentCamera
-        bodyVel.Velocity = (char.Humanoid.MoveDirection.Magnitude > 0) and (cam.CFrame.LookVector * flySpeed) or Vector3.new(0,0,0)
-        bodyGyro.CFrame = cam.CFrame
-    end
 end)
