@@ -25,10 +25,10 @@ frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
 
--- OPEN CLOSE
+-- OPEN / CLOSE BUTTON (DESCENDU)
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0,120,0,30)
-toggle.Position = UDim2.new(0,10,0,-35)
+toggle.Position = UDim2.new(0,10,0,10)
 toggle.Text = "Open / Close"
 toggle.Parent = gui
 
@@ -91,12 +91,10 @@ local function createMiniPing()
 	miniBtn.MouseButton1Click:Connect(function()
 
 		if pingPosition then
-
 			local char = player.Character
 			if char then
 				char:MoveTo(pingPosition)
 			end
-
 		end
 
 	end)
@@ -165,7 +163,7 @@ RunService.Stepped:Connect(function()
 end)
 
 -------------------------------------------------
--- FLY MOBILE
+-- FLY MOBILE CORRIGÉ
 -------------------------------------------------
 
 local flySpeed = 70
@@ -183,6 +181,8 @@ flyBtn.MouseButton1Click:Connect(function()
 
 	if flying then
 
+		humanoid.PlatformStand = true
+
 		bv = Instance.new("BodyVelocity")
 		bv.MaxForce = Vector3.new(9e9,9e9,9e9)
 		bv.Parent = hrp
@@ -197,9 +197,7 @@ flyBtn.MouseButton1Click:Connect(function()
 			local moveDirection = humanoid.MoveDirection
 			local cam = workspace.CurrentCamera
 
-			local move =
-				(cam.CFrame.RightVector * moveDirection.X) +
-				(cam.CFrame.LookVector * moveDirection.Z)
+			local move = cam.CFrame:VectorToWorldSpace(moveDirection)
 
 			bv.Velocity = move * flySpeed
 			bg.CFrame = cam.CFrame
@@ -207,6 +205,8 @@ flyBtn.MouseButton1Click:Connect(function()
 		end)
 
 	else
+
+		humanoid.PlatformStand = false
 
 		if flyConnection then
 			flyConnection:Disconnect()
