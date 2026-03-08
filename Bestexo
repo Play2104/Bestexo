@@ -6,30 +6,12 @@ local pingPosition = nil
 local noclipEnabled = false
 local flying = false
 
-local bodyVelocity
-local bodyGyro
+local bv
+local bg
+local flyConnection
+local miniFrame
 
-local character
-local humanoid
-
--- Setup personnage
-local function setupCharacter(char)
-	character = char
-	humanoid = character:WaitForChild("Humanoid")
-	flying = false
-	bodyVelocity = nil
-	bodyGyro = nil
-end
-
-setupCharacter(player.Character or player.CharacterAdded:Wait())
-
-player.CharacterAdded:Connect(function(char)
-	setupCharacter(char)
-end)
-
--------------------------------------------------
 -- GUI
--------------------------------------------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "BestexoHub"
 gui.Parent = game:GetService("CoreGui")
@@ -46,7 +28,7 @@ frame.Parent = gui
 -- OPEN / CLOSE BUTTON
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0,120,0,30)
-toggle.Position = UDim2.new(0,10,0,10)
+toggle.Position = UDim2.new(0,10,0,20)
 toggle.Text = "Open / Close"
 toggle.Parent = gui
 
@@ -85,7 +67,7 @@ flyBtn.Parent = frame
 -------------------------------------------------
 -- MINI TP GUI
 -------------------------------------------------
-local miniFrame
+
 local function createMiniPing()
 
 	if miniFrame then
@@ -107,104 +89,138 @@ local function createMiniPing()
 	miniBtn.Parent = miniFrame
 
 	miniBtn.MouseButton1Click:Connect(function()
-		if pingPosition and character then
-			character:MoveTo(pingPosition)
+
+		if pingPosition then
+			local char = player.Character
+			if char then
+				char:MoveTo(pingPosition)
+			end
 		end
+
 	end)
 
 end
 
 -------------------------------------------------
--- PLACE / TP PING
+-- PLACE PING
 -------------------------------------------------
+
 pingBtn.MouseButton1Click:Connect(function()
+
 	local target = mouse.Hit
+
 	if target then
 		pingPosition = target.Position
 		createMiniPing()
 	end
+
 end)
 
+-------------------------------------------------
+-- TP PING
+-------------------------------------------------
+
 tpBtn.MouseButton1Click:Connect(function()
-	if pingPosition and character then
-		character:MoveTo(pingPosition)
+
+	if pingPosition then
+
+		local char = player.Character
+		if char then
+			char:MoveTo(pingPosition)
+		end
+
 	end
+
 end)
 
 -------------------------------------------------
 -- NOCLIP
 -------------------------------------------------
+
 noclipBtn.MouseButton1Click:Connect(function()
+
 	noclipEnabled = not noclipEnabled
 	noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
+
 end)
 
 RunService.Stepped:Connect(function()
-	if noclipEnabled and character then
-		for _,v in pairs(character:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.CanCollide = false
+
+	if noclipEnabled then
+
+		local char = player.Character
+
+		if char then
+			for _,v in pairs(char:GetDescendants()) do
+				if v:IsA("BasePart") then
+					v.CanCollide = false
+				end
 			end
 		end
+
 	end
+
 end)
 
 -------------------------------------------------
--- FLY MOBILE
+-- FLY MOBILE (NOUVELLE VERSION)
 -------------------------------------------------
-local flySpeed = 100
 
-local function startFlying()
-	if flying or not character then return end
-
-	local root = character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
-
-	flying = true
-	humanoid.PlatformStand = true
-
-	bodyVelocity = Instance.new("BodyVelocity")
-	bodyVelocity.MaxForce = Vector3.new(1e6,1e6,1e6)
-	bodyVelocity.Velocity = Vector3.new(0,0,0)
-	bodyVelocity.Parent = root
-
-	bodyGyro = Instance.new("BodyGyro")
-	bodyGyro.MaxTorque = Vector3.new(1e6,1e6,1e6)
-	bodyGyro.CFrame = root.CFrame
-	bodyGyro.Parent = root
-end
-
-local function stopFlying()
-	flying = false
-	humanoid.PlatformStand = false
-
-	if bodyVelocity then
-		bodyVelocity:Destroy()
-		bodyVelocity = nil
-	end
-	if bodyGyro then
-		bodyGyro:Destroy()
-		bodyGyro = nil
-	end
-end
+local flySpeed = 70
 
 flyBtn.MouseButton1Click:Connect(function()
-	if flying then
-		stopFlying()
-	else
-		startFlying()
-	end
-end)
 
--- Movement du fly avec joystick
-RunService.RenderStepped:Connect(function()
-	if flying and character and bodyVelocity and bodyGyro then
-		local root = character:FindFirstChild("HumanoidRootPart")
-		if not root then return end
-		local cam = workspace.CurrentCamera
-		local moveDirection = humanoid.MoveDirection
-		local move = cam.CFrame:VectorToWorldSpace(moveDirection)
-		bodyVelocity.Velocity = move * flySpeed
-		bodyGyro.CFrame = cam.CFrame
+	flying = not flying
+	flyBtn.Text = flying and "Fly : ON" or "Fly : OFF"
+
+	local char = player.Character
+	if not char then return end
+
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+
+	if flying then
+
+		humanoid.PlatformStand = true
+
+		bv = Instance.new("BodyVelocity")
+		bv.MaxForce = Vector3.new(9e9,9e9,9e9)
+		bv.Velocity = Vector3.new(0,0,0)
+		bv.Parent = hrp
+
+		bg = Instance.new("BodyGyro")
+		bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
+		bg.CFrame = hrp.CFrame
+		bg.Parent = hrp
+
+		flyConnection = RunService.RenderStepped:Connect(function()
+
+			local moveDirection = humanoid.MoveDirection
+			local cam = workspace.CurrentCamera
+
+			if moveDirection.Magnitude > 0 then
+				local move = cam.CFrame:VectorToWorldSpace(moveDirection)
+				bv.Velocity = move * flySpeed
+			else
+				bv.Velocity = Vector3.new(0,0,0)
+			end
+
+			bg.CFrame = cam.CFrame
+
+		end)
+
+	else
+
+		humanoid.PlatformStand = false
+
+		if flyConnection then
+			flyConnection:Disconnect()
+			flyConnection = nil
+		end
+
+		if bv then bv:Destroy() end
+		if bg then bg:Destroy() end
+
 	end
+
 end)
