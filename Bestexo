@@ -1,7 +1,6 @@
 local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
 local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
 
 local pingPosition = nil
 local noclipEnabled = false
@@ -9,11 +8,13 @@ local flying = false
 
 local bv
 local bg
+local flyConnection
 local miniFrame
 
 -- GUI
 local gui = Instance.new("ScreenGui")
-gui.Parent = game.CoreGui
+gui.Name = "BestexoHub"
+gui.Parent = game:GetService("CoreGui")
 
 -- MAIN FRAME
 local frame = Instance.new("Frame")
@@ -24,7 +25,7 @@ frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
 
--- BOUTON MASQUER
+-- OPEN CLOSE
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0,120,0,30)
 toggle.Position = UDim2.new(0,10,0,-35)
@@ -64,10 +65,11 @@ flyBtn.Text = "Fly : OFF"
 flyBtn.Parent = frame
 
 -------------------------------------------------
--- MINI PING GUI
+-- MINI TP GUI
 -------------------------------------------------
 
 local function createMiniPing()
+
 	if miniFrame then
 		miniFrame:Destroy()
 	end
@@ -87,75 +89,133 @@ local function createMiniPing()
 	miniBtn.Parent = miniFrame
 
 	miniBtn.MouseButton1Click:Connect(function()
+
 		if pingPosition then
+
 			local char = player.Character
 			if char then
 				char:MoveTo(pingPosition)
 			end
+
 		end
+
 	end)
+
 end
 
 -------------------------------------------------
 -- PLACE PING
 -------------------------------------------------
+
 pingBtn.MouseButton1Click:Connect(function()
+
 	local target = mouse.Hit
+
 	if target then
 		pingPosition = target.Position
 		createMiniPing()
 	end
+
 end)
 
 -------------------------------------------------
 -- TP PING
 -------------------------------------------------
+
 tpBtn.MouseButton1Click:Connect(function()
+
 	if pingPosition then
+
 		local char = player.Character
 		if char then
 			char:MoveTo(pingPosition)
 		end
+
 	end
+
 end)
 
 -------------------------------------------------
 -- NOCLIP
 -------------------------------------------------
+
 noclipBtn.MouseButton1Click:Connect(function()
+
 	noclipEnabled = not noclipEnabled
 	noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
+
 end)
 
 RunService.Stepped:Connect(function()
+
 	if noclipEnabled then
+
 		local char = player.Character
+
 		if char then
-			for _, part in pairs(char:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
+			for _,v in pairs(char:GetDescendants()) do
+				if v:IsA("BasePart") then
+					v.CanCollide = false
 				end
 			end
 		end
+
 	end
+
 end)
 
 -------------------------------------------------
 -- FLY MOBILE
 -------------------------------------------------
-local flyConnection
+
 local flySpeed = 70
 
 flyBtn.MouseButton1Click:Connect(function()
+
 	flying = not flying
 	flyBtn.Text = flying and "Fly : ON" or "Fly : OFF"
 
 	local char = player.Character
 	if not char then return end
+
 	local humanoid = char:FindFirstChildOfClass("Humanoid")
 	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp or not humanoid then return end
 
 	if flying then
+
 		bv = Instance.new("BodyVelocity")
-		bv.MaxForce = Vector3.new(9
+		bv.MaxForce = Vector3.new(9e9,9e9,9e9)
+		bv.Parent = hrp
+
+		bg = Instance.new("BodyGyro")
+		bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
+		bg.CFrame = hrp.CFrame
+		bg.Parent = hrp
+
+		flyConnection = RunService.RenderStepped:Connect(function()
+
+			local moveDirection = humanoid.MoveDirection
+			local cam = workspace.CurrentCamera
+
+			local move =
+				(cam.CFrame.RightVector * moveDirection.X) +
+				(cam.CFrame.LookVector * moveDirection.Z)
+
+			bv.Velocity = move * flySpeed
+			bg.CFrame = cam.CFrame
+
+		end)
+
+	else
+
+		if flyConnection then
+			flyConnection:Disconnect()
+			flyConnection = nil
+		end
+
+		if bv then bv:Destroy() end
+		if bg then bg:Destroy() end
+
+	end
+
+end)
