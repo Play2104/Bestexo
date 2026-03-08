@@ -10,7 +10,7 @@ local miniFrame = nil
 
 -- --- GUI PRINCIPAL ---
 local gui = Instance.new("ScreenGui")
-gui.Name = "BestexoHubMobile"
+gui.Name = "BestexoHubMobile_Final"
 gui.Parent = game.CoreGui
 gui.ResetOnSpawn = false
 
@@ -32,7 +32,7 @@ frame.Position = UDim2.new(0.5, -110, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Active = true
 frame.Draggable = true
-frame.Visible = true
+frame.Visible = false -- Caché par défaut pour ne pas gêner
 frame.Parent = gui
 Instance.new("UICorner", frame)
 
@@ -61,41 +61,70 @@ local noclipBtn = createBtn("Noclip : OFF", UDim2.new(0, 10, 0, 115), frame)
 local flyBtn = createBtn("Fly : OFF", UDim2.new(0, 10, 0, 165), frame)
 
 -------------------------------------------------
--- LOGIQUE FLY (Direction Caméra sans boutons)
+-- BOUTONS RAPIDES (CÔTÉ DROIT)
+-------------------------------------------------
+local sideFrame = Instance.new("Frame")
+sideFrame.Size = UDim2.new(0, 60, 0, 130)
+sideFrame.Position = UDim2.new(0.9, 0, 0.4, 0)
+sideFrame.BackgroundTransparency = 1
+sideFrame.Parent = gui
+
+local function createSideBtn(text, pos, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 55, 0, 55)
+    btn.Position = pos
+    btn.Text = text
+    btn.BackgroundColor3 = color
+    btn.BackgroundTransparency = 0.3
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 14
+    btn.Parent = sideFrame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+    return btn
+end
+
+local quickNoclip = createSideBtn("NOCLIP", UDim2.new(0, 0, 0, 0), Color3.fromRGB(200, 0, 0))
+local quickFly = createSideBtn("FLY", UDim2.new(0, 0, 0, 65), Color3.fromRGB(0, 200, 0))
+
+-------------------------------------------------
+-- LOGIQUE FLY & NOCLIP FUSIONNÉE
 -------------------------------------------------
 local bodyVel, bodyGyro
 
-local function startFly()
+local function updateFlyState()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
-    bodyVel = Instance.new("BodyVelocity")
-    bodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-    bodyVel.Velocity = Vector3.new(0,0,0)
-    bodyVel.Parent = char.HumanoidRootPart
-    
-    bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
-    bodyGyro.CFrame = char.HumanoidRootPart.CFrame
-    bodyGyro.Parent = char.HumanoidRootPart
-    
-    char.Humanoid.PlatformStand = true
-end
-
-local function stopFly()
-    if bodyVel then bodyVel:Destroy() end
-    if bodyGyro then bodyGyro:Destroy() end
-    local char = player.Character
-    if char and char:FindFirstChild("Humanoid") then
+    if flyEnabled then
+        if not bodyVel then
+            bodyVel = Instance.new("BodyVelocity", char.HumanoidRootPart)
+            bodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+            bodyGyro = Instance.new("BodyGyro", char.HumanoidRootPart)
+            bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+        end
+        char.Humanoid.PlatformStand = true
+        quickFly.BackgroundTransparency = 0
+    else
+        if bodyVel then bodyVel:Destroy() bodyVel = nil end
+        if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
         char.Humanoid.PlatformStand = false
+        quickFly.BackgroundTransparency = 0.5
     end
+    flyBtn.Text = flyEnabled and "Fly : ON" or "Fly : OFF"
 end
 
-flyBtn.MouseButton1Click:Connect(function()
-    flyEnabled = not flyEnabled
-    flyBtn.Text = flyEnabled and "Fly : ON" or "Fly : OFF"
-    if flyEnabled then startFly() else stopFly() end
-end)
+local function toggleNoclip()
+    noclipEnabled = not noclipEnabled
+    noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
+    quickNoclip.BackgroundTransparency = noclipEnabled and 0 or 0.5
+end
+
+-- Events Boutons
+flyBtn.MouseButton1Click:Connect(function() flyEnabled = not flyEnabled updateFlyState() end)
+quickFly.MouseButton1Click:Connect(function() flyEnabled = not flyEnabled updateFlyState() end)
+noclipBtn.MouseButton1Click:Connect(toggleNoclip)
+quickNoclip.MouseButton1Click:Connect(toggleNoclip)
 
 -------------------------------------------------
 -- MINI TP GUI
@@ -103,71 +132,52 @@ end)
 local function createMiniPing()
     if miniFrame then miniFrame:Destroy() end
     miniFrame = Instance.new("Frame")
-    miniFrame.Size = UDim2.new(0, 120, 0, 50)
-    miniFrame.Position = UDim2.new(0.5, -60, 0.8, 0)
-    miniFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    miniFrame.Active = true
-    miniFrame.Draggable = true
+    miniFrame.Size = UDim2.new(0, 100, 0, 40)
+    miniFrame.Position = UDim2.new(0.5, -50, 0.85, 0)
+    miniFrame.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
     miniFrame.Parent = gui
     Instance.new("UICorner", miniFrame)
 
-    local miniBtn = createBtn("TP PING", UDim2.new(0, 10, 0, 10), miniFrame)
-    miniBtn.Size = UDim2.new(0, 100, 0, 30)
-    miniBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+    local miniBtn = Instance.new("TextButton")
+    miniBtn.Size = UDim2.new(1, 0, 1, 0)
+    miniBtn.BackgroundTransparency = 1
+    miniBtn.Text = "TP PING"
+    miniBtn.TextColor3 = Color3.new(1, 1, 1)
+    miniBtn.Parent = miniFrame
 
     miniBtn.MouseButton1Click:Connect(function()
-        if pingPosition and player.Character then
-            player.Character:MoveTo(pingPosition)
-        end
+        if pingPosition and player.Character then player.Character:MoveTo(pingPosition) end
     end)
 end
 
 -------------------------------------------------
--- BOUCLE DE MISE À JOUR (Noclip & Fly)
+-- BOUCLE RUNSERVICE
 -------------------------------------------------
 RunService.RenderStepped:Connect(function()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
-    -- Gestion Noclip
     if noclipEnabled then
         for _, v in pairs(char:GetDescendants()) do
             if v:IsA("BasePart") then v.CanCollide = false end
         end
     end
 
-    -- Gestion Fly Directionnel
     if flyEnabled and bodyVel and bodyGyro then
         local cam = workspace.CurrentCamera
-        
-        -- Si tu touches au joystick mobile
         if char.Humanoid.MoveDirection.Magnitude > 0 then
             bodyVel.Velocity = cam.CFrame.LookVector * flySpeed
         else
             bodyVel.Velocity = Vector3.new(0, 0, 0)
         end
-        
         bodyGyro.CFrame = cam.CFrame
     end
 end)
 
--------------------------------------------------
--- ACTIONS DES BOUTONS
--------------------------------------------------
 pingBtn.MouseButton1Click:Connect(function()
-    if mouse.Hit then
-        pingPosition = mouse.Hit.Position
-        createMiniPing()
-    end
+    if mouse.Hit then pingPosition = mouse.Hit.Position createMiniPing() end
 end)
 
 tpBtn.MouseButton1Click:Connect(function()
-    if pingPosition and player.Character then
-        player.Character:MoveTo(pingPosition)
-    end
-end)
-
-noclipBtn.MouseButton1Click:Connect(function()
-    noclipEnabled = not noclipEnabled
-    noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
+    if pingPosition and player.Character then player.Character:MoveTo(pingPosition) end
 end)
