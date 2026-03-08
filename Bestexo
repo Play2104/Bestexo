@@ -1,4 +1,5 @@
 local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
 local RunService = game:GetService("RunService")
 
 local pingPosition = nil
@@ -6,7 +7,7 @@ local noclipEnabled = false
 local flyEnabled = false
 local flySpeed = 100 
 local miniFrame = nil
-local pingPart = nil -- Pour l'ESP visuel
+local pingPart = nil
 
 -- --- GUI PRINCIPAL ---
 local gui = Instance.new("ScreenGui")
@@ -14,7 +15,7 @@ gui.Name = "BestexoHubMobile_Final"
 gui.Parent = game.CoreGui
 gui.ResetOnSpawn = false
 
--- BOUTON MENU (Toggle)
+-- BOUTON MENU
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0, 100, 0, 40)
 toggle.Position = UDim2.new(0, 10, 0, 10)
@@ -27,7 +28,7 @@ toggle.Parent = gui
 
 -- FRAME PRINCIPALE
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 260)
+frame.Size = UDim2.new(0, 220, 0, 310) -- Agrandie pour le nouveau bouton
 frame.Position = UDim2.new(0.5, -110, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Active = true
@@ -57,11 +58,12 @@ end
 
 local pingBtn = createBtn("Place Ping (Here)", UDim2.new(0, 10, 0, 15), frame)
 local tpBtn = createBtn("TP Ping", UDim2.new(0, 10, 0, 65), frame)
-local noclipBtn = createBtn("Noclip : OFF", UDim2.new(0, 10, 0, 115), frame)
-local flyBtn = createBtn("Fly : OFF", UDim2.new(0, 10, 0, 165), frame)
+local scamBtn = createBtn("Scam TP (1 sec)", UDim2.new(0, 10, 0, 115), frame)
+local noclipBtn = createBtn("Noclip : OFF", UDim2.new(0, 10, 0, 165), frame)
+local flyBtn = createBtn("Fly : OFF", UDim2.new(0, 10, 0, 215), frame)
 
 -------------------------------------------------
--- BOUTONS RAPIDES (CÔTÉ DROIT)
+-- BOUTONS RAPIDES (DROITE)
 -------------------------------------------------
 local sideFrame = Instance.new("Frame")
 sideFrame.Size = UDim2.new(0, 60, 0, 130)
@@ -87,13 +89,11 @@ local quickNoclip = createSideBtn("NOCLIP", UDim2.new(0, 0, 0, 0), Color3.fromRG
 local quickFly = createSideBtn("FLY", UDim2.new(0, 0, 0, 65), Color3.fromRGB(0, 200, 0))
 
 -------------------------------------------------
--- LOGIQUE ESP PING (Visualisation)
+-- LOGIQUE VISUELLE PING (ESP)
 -------------------------------------------------
 local function createPingVisual(pos)
     if pingPart then pingPart:Destroy() end
-    
     pingPart = Instance.new("Part")
-    pingPart.Name = "BestexoPing"
     pingPart.Size = Vector3.new(2, 2, 2)
     pingPart.Position = pos
     pingPart.Anchored = true
@@ -103,29 +103,19 @@ local function createPingVisual(pos)
     pingPart.Shape = Enum.PartType.Ball
     pingPart.Parent = workspace
     
-    -- Highlight (ESP à travers les murs)
-    local highlight = Instance.new("Highlight")
+    local highlight = Instance.new("Highlight", pingPart)
     highlight.FillColor = Color3.fromRGB(255, 0, 0)
-    highlight.OutlineColor = Color3.new(1, 1, 1)
-    highlight.FillTransparency = 0.5
-    highlight.Parent = pingPart
     
-    -- BillboardGui (Nom/Distance)
-    local bgui = Instance.new("BillboardGui")
+    local bgui = Instance.new("BillboardGui", pingPart)
     bgui.Size = UDim2.new(0, 100, 0, 50)
     bgui.AlwaysOnTop = true
-    bgui.Adornee = pingPart
     bgui.StudsOffset = Vector3.new(0, 3, 0)
-    bgui.Parent = pingPart
-    
-    local label = Instance.new("TextLabel")
+    local label = Instance.new("TextLabel", bgui)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = "PING HERE"
+    label.Text = "PING"
     label.TextColor3 = Color3.new(1, 1, 1)
     label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.Parent = bgui
 end
 
 -------------------------------------------------
@@ -136,21 +126,16 @@ local bodyVel, bodyGyro
 local function updateFlyState()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    
     if flyEnabled then
-        if not bodyVel then
-            bodyVel = Instance.new("BodyVelocity", char.HumanoidRootPart)
-            bodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-            bodyGyro = Instance.new("BodyGyro", char.HumanoidRootPart)
-            bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
-        end
+        bodyVel = Instance.new("BodyVelocity", char.HumanoidRootPart)
+        bodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+        bodyGyro = Instance.new("BodyGyro", char.HumanoidRootPart)
+        bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
         char.Humanoid.PlatformStand = true
-        quickFly.BackgroundTransparency = 0
     else
         if bodyVel then bodyVel:Destroy() bodyVel = nil end
         if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
         char.Humanoid.PlatformStand = false
-        quickFly.BackgroundTransparency = 0.5
     end
     flyBtn.Text = flyEnabled and "Fly : ON" or "Fly : OFF"
 end
@@ -158,7 +143,6 @@ end
 local function toggleNoclip()
     noclipEnabled = not noclipEnabled
     noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
-    quickNoclip.BackgroundTransparency = noclipEnabled and 0 or 0.5
 end
 
 flyBtn.MouseButton1Click:Connect(function() flyEnabled = not flyEnabled updateFlyState() end)
@@ -167,57 +151,44 @@ noclipBtn.MouseButton1Click:Connect(toggleNoclip)
 quickNoclip.MouseButton1Click:Connect(toggleNoclip)
 
 -------------------------------------------------
--- BOUCLE RUNSERVICE
+-- SCAM TP (La nouvelle fonction)
 -------------------------------------------------
-RunService.RenderStepped:Connect(function()
+scamBtn.MouseButton1Click:Connect(function()
     local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
-    if noclipEnabled then
-        for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
-        end
-    end
-
-    if flyEnabled and bodyVel and bodyGyro then
-        local cam = workspace.CurrentCamera
-        if char.Humanoid.MoveDirection.Magnitude > 0 then
-            bodyVel.Velocity = cam.CFrame.LookVector * flySpeed
-        else
-            bodyVel.Velocity = Vector3.new(0, 0, 0)
-        end
-        bodyGyro.CFrame = cam.CFrame
+    if char and char:FindFirstChild("HumanoidRootPart") and pingPosition then
+        local originalPos = char.HumanoidRootPart.CFrame
+        char:SetPrimaryPartCFrame(CFrame.new(pingPosition)) -- TP au ping
+        task.wait(1) -- Attend 1 seconde
+        char:SetPrimaryPartCFrame(originalPos) -- Retour à la base
     end
 end)
 
 -------------------------------------------------
--- ACTIONS PING
+-- AUTRES ACTIONS
 -------------------------------------------------
 pingBtn.MouseButton1Click:Connect(function()
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         pingPosition = char.HumanoidRootPart.Position
         createPingVisual(pingPosition)
-        
-        -- Petit mini-bouton pour TP rapide
-        if miniFrame then miniFrame:Destroy() end
-        miniFrame = Instance.new("Frame")
-        miniFrame.Size = UDim2.new(0, 100, 0, 40)
-        miniFrame.Position = UDim2.new(0.5, -50, 0.85, 0)
-        miniFrame.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-        miniFrame.Parent = gui
-        Instance.new("UICorner", miniFrame)
-        local miniBtn = createBtn("TP PING", UDim2.new(0, 0, 0, 0), miniFrame)
-        miniBtn.Size = UDim2.new(1, 0, 1, 0)
-        miniBtn.BackgroundTransparency = 1
-        miniBtn.MouseButton1Click:Connect(function()
-            if pingPosition and player.Character then player.Character:MoveTo(pingPosition) end
-        end)
     end
 end)
 
 tpBtn.MouseButton1Click:Connect(function()
-    if pingPosition and player.Character then
-        player.Character:MoveTo(pingPosition)
+    if pingPosition and player.Character then player.Character:MoveTo(pingPosition) end
+end)
+
+RunService.RenderStepped:Connect(function()
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    if noclipEnabled then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+    if flyEnabled and bodyVel and bodyGyro then
+        local cam = workspace.CurrentCamera
+        bodyVel.Velocity = (char.Humanoid.MoveDirection.Magnitude > 0) and (cam.CFrame.LookVector * flySpeed) or Vector3.new(0,0,0)
+        bodyGyro.CFrame = cam.CFrame
     end
 end)
