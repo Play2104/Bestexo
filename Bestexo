@@ -1,0 +1,161 @@
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+local pingPosition = nil
+local noclipEnabled = false
+local flying = false
+
+local bv
+local bg
+local miniFrame
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Parent = game.CoreGui
+
+-- MAIN FRAME
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0,220,0,230)
+frame.Position = UDim2.new(0.5,-110,0.4,0)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+-- BOUTON MASQUER
+local toggle = Instance.new("TextButton")
+toggle.Size = UDim2.new(0,120,0,30)
+toggle.Position = UDim2.new(0,10,0,-35)
+toggle.Text = "Open / Close"
+toggle.Parent = gui
+
+toggle.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+-- PLACE PING
+local pingBtn = Instance.new("TextButton")
+pingBtn.Size = UDim2.new(0,200,0,35)
+pingBtn.Position = UDim2.new(0,10,0,10)
+pingBtn.Text = "Place Ping"
+pingBtn.Parent = frame
+
+-- TP PING
+local tpBtn = Instance.new("TextButton")
+tpBtn.Size = UDim2.new(0,200,0,35)
+tpBtn.Position = UDim2.new(0,10,0,55)
+tpBtn.Text = "TP Ping"
+tpBtn.Parent = frame
+
+-- NOCLIP
+local noclipBtn = Instance.new("TextButton")
+noclipBtn.Size = UDim2.new(0,200,0,35)
+noclipBtn.Position = UDim2.new(0,10,0,100)
+noclipBtn.Text = "Noclip : OFF"
+noclipBtn.Parent = frame
+
+-- FLY
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(0,200,0,35)
+flyBtn.Position = UDim2.new(0,10,0,145)
+flyBtn.Text = "Fly : OFF"
+flyBtn.Parent = frame
+
+-------------------------------------------------
+-- MINI PING GUI
+-------------------------------------------------
+
+local function createMiniPing()
+	if miniFrame then
+		miniFrame:Destroy()
+	end
+
+	miniFrame = Instance.new("Frame")
+	miniFrame.Size = UDim2.new(0,160,0,70)
+	miniFrame.Position = UDim2.new(0.7,0,0.6,0)
+	miniFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	miniFrame.Active = true
+	miniFrame.Draggable = true
+	miniFrame.Parent = gui
+
+	local miniBtn = Instance.new("TextButton")
+	miniBtn.Size = UDim2.new(0,140,0,35)
+	miniBtn.Position = UDim2.new(0,10,0,15)
+	miniBtn.Text = "TP Ping"
+	miniBtn.Parent = miniFrame
+
+	miniBtn.MouseButton1Click:Connect(function()
+		if pingPosition then
+			local char = player.Character
+			if char then
+				char:MoveTo(pingPosition)
+			end
+		end
+	end)
+end
+
+-------------------------------------------------
+-- PLACE PING
+-------------------------------------------------
+pingBtn.MouseButton1Click:Connect(function()
+	local target = mouse.Hit
+	if target then
+		pingPosition = target.Position
+		createMiniPing()
+	end
+end)
+
+-------------------------------------------------
+-- TP PING
+-------------------------------------------------
+tpBtn.MouseButton1Click:Connect(function()
+	if pingPosition then
+		local char = player.Character
+		if char then
+			char:MoveTo(pingPosition)
+		end
+	end
+end)
+
+-------------------------------------------------
+-- NOCLIP
+-------------------------------------------------
+noclipBtn.MouseButton1Click:Connect(function()
+	noclipEnabled = not noclipEnabled
+	noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
+end)
+
+RunService.Stepped:Connect(function()
+	if noclipEnabled then
+		local char = player.Character
+		if char then
+			for _, part in pairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
+		end
+	end
+end)
+
+-------------------------------------------------
+-- FLY MOBILE
+-------------------------------------------------
+local flyConnection
+local flySpeed = 70
+
+flyBtn.MouseButton1Click:Connect(function()
+	flying = not flying
+	flyBtn.Text = flying and "Fly : ON" or "Fly : OFF"
+
+	local char = player.Character
+	if not char then return end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp or not humanoid then return end
+
+	if flying then
+		bv = Instance.new("BodyVelocity")
+		bv.MaxForce = Vector3.new(9
