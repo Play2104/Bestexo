@@ -6,10 +6,7 @@ local pingPosition = nil
 local noclipEnabled = false
 local flying = false
 local miniFrame
-
-local bv
-local bg
-local flyConnection
+local flyLoaded = false
 
 -- GUI
 local gui = Instance.new("ScreenGui")
@@ -25,7 +22,7 @@ frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
 
--- OPEN / CLOSE
+-- OPEN CLOSE
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0,120,0,30)
 toggle.Position = UDim2.new(0,10,0,20)
@@ -57,11 +54,11 @@ noclipBtn.Position = UDim2.new(0,10,0,100)
 noclipBtn.Text = "Noclip : OFF"
 noclipBtn.Parent = frame
 
--- AIR MODE (FLY)
+-- FLY
 local flyBtn = Instance.new("TextButton")
 flyBtn.Size = UDim2.new(0,200,0,35)
 flyBtn.Position = UDim2.new(0,10,0,145)
-flyBtn.Text = "Air Mode : OFF"
+flyBtn.Text = "Fly : OFF"
 flyBtn.Parent = frame
 
 -------------------------------------------------
@@ -104,11 +101,14 @@ end
 -------------------------------------------------
 
 pingBtn.MouseButton1Click:Connect(function()
+
 	local target = mouse.Hit
+
 	if target then
 		pingPosition = target.Position
 		createMiniPing()
 	end
+
 end)
 
 -------------------------------------------------
@@ -116,12 +116,16 @@ end)
 -------------------------------------------------
 
 tpBtn.MouseButton1Click:Connect(function()
+
 	if pingPosition then
+
 		local char = player.Character
 		if char then
 			char:MoveTo(pingPosition)
 		end
+
 	end
+
 end)
 
 -------------------------------------------------
@@ -129,13 +133,18 @@ end)
 -------------------------------------------------
 
 noclipBtn.MouseButton1Click:Connect(function()
+
 	noclipEnabled = not noclipEnabled
 	noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
+
 end)
 
 RunService.Stepped:Connect(function()
+
 	if noclipEnabled then
+
 		local char = player.Character
+
 		if char then
 			for _,v in pairs(char:GetDescendants()) do
 				if v:IsA("BasePart") then
@@ -143,60 +152,33 @@ RunService.Stepped:Connect(function()
 				end
 			end
 		end
+
 	end
+
 end)
 
 -------------------------------------------------
--- AIR MODE (FLY)
+-- FLY SCRIPT EXTERNE
 -------------------------------------------------
-
-local flySpeed = 100
 
 flyBtn.MouseButton1Click:Connect(function()
 
 	flying = not flying
-	flyBtn.Text = flying and "Air Mode : ON" or "Air Mode : OFF"
+	flyBtn.Text = flying and "Fly : ON" or "Fly : OFF"
 
-	local char = player.Character
-	if not char then return end
+	_G.FlyEnabled = flying
 
-	local humanoid = char:FindFirstChildOfClass("Humanoid")
-	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not flyLoaded then
 
-	if flying then
+		flyLoaded = true
+		loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-FE-FLY-MOBILE-SCRIPT-23875"))()
 
-		humanoid.WalkSpeed = 100
-
-		bv = Instance.new("BodyVelocity")
-		bv.MaxForce = Vector3.new(9e9,9e9,9e9)
-		bv.Parent = hrp
-
-		bg = Instance.new("BodyGyro")
-		bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
-		bg.CFrame = hrp.CFrame
-		bg.Parent = hrp
-
-		flyConnection = RunService.RenderStepped:Connect(function()
-
-			local cam = workspace.CurrentCamera
-			local move = humanoid.MoveDirection
-
-			bv.Velocity = cam.CFrame:VectorToWorldSpace(move) * flySpeed
-			bg.CFrame = cam.CFrame
-
-		end)
-
-	else
-
-		humanoid.WalkSpeed = 16
-
-		if flyConnection then
-			flyConnection:Disconnect()
-			flyConnection = nil
+		-- cacher interface externe
+		for _,v in pairs(game.CoreGui:GetChildren()) do
+			if v.Name:lower():find("fly") then
+				v.Enabled = false
+			end
 		end
-
-		if bv then bv:Destroy() end
-		if bg then bg:Destroy() end
 
 	end
 
