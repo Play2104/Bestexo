@@ -1,244 +1,167 @@
 local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
 local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
 
 local pingPosition = nil
 local noclipEnabled = false
-local flying = false
+local flyEnabled = false
+local flySpeed = 50
 local miniFrame
 
-local flySpeed = 80
-local bodyVelocity
-local bodyGyro
-
--- GUI
+-- GUI Principal
 local gui = Instance.new("ScreenGui")
 gui.Name = "BestexoHub"
 gui.Parent = game.CoreGui
+gui.ResetOnSpawn = false
 
--- FRAME
+-- FRAME (Agrandie pour accueillir le nouveau bouton)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,220,0,230)
-frame.Position = UDim2.new(0.5,-110,0.4,0)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Size = UDim2.new(0, 220, 0, 250)
+frame.Position = UDim2.new(0.5, -110, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Active = true
 frame.Draggable = true
+frame.Visible = true
 frame.Parent = gui
 
--- OPEN CLOSE
+-- BOUTON TOGGLE (OUVRIR/FERMER)
 local toggle = Instance.new("TextButton")
-toggle.Size = UDim2.new(0,120,0,30)
-toggle.Position = UDim2.new(0,10,0,20)
+toggle.Size = UDim2.new(0, 120, 0, 30)
+toggle.Position = UDim2.new(0, 10, 0, 20)
 toggle.Text = "Open / Close"
 toggle.Parent = gui
 
 toggle.MouseButton1Click:Connect(function()
-	frame.Visible = not frame.Visible
+    frame.Visible = not frame.Visible
 end)
 
--- PLACE PING
-local pingBtn = Instance.new("TextButton")
-pingBtn.Size = UDim2.new(0,200,0,35)
-pingBtn.Position = UDim2.new(0,10,0,10)
-pingBtn.Text = "Place Ping"
-pingBtn.Parent = frame
+-- BOUTONS DU MENU
+local function createBtn(text, pos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 200, 0, 35)
+    btn.Position = pos
+    btn.Text = text
+    btn.Parent = frame
+    return btn
+end
 
--- TP PING
-local tpBtn = Instance.new("TextButton")
-tpBtn.Size = UDim2.new(0,200,0,35)
-tpBtn.Position = UDim2.new(0,10,0,55)
-tpBtn.Text = "TP Ping"
-tpBtn.Parent = frame
+local pingBtn = createBtn("Place Ping", UDim2.new(0, 10, 0, 10))
+local tpBtn = createBtn("TP Ping", UDim2.new(0, 10, 0, 55))
+local noclipBtn = createBtn("Noclip : OFF", UDim2.new(0, 10, 0, 100))
+local flyBtn = createBtn("Fly : OFF", UDim2.new(0, 10, 0, 145))
 
--- NOCLIP
-local noclipBtn = Instance.new("TextButton")
-noclipBtn.Size = UDim2.new(0,200,0,35)
-noclipBtn.Position = UDim2.new(0,10,0,100)
-noclipBtn.Text = "Noclip : OFF"
-noclipBtn.Parent = frame
+-------------------------------------------------
+-- LOGIQUE FLY
+-------------------------------------------------
+local bodyVel, bodyGyro
 
--- FLY
-local flyBtn = Instance.new("TextButton")
-flyBtn.Size = UDim2.new(0,200,0,35)
-flyBtn.Position = UDim2.new(0,10,0,145)
-flyBtn.Text = "Fly : OFF"
-flyBtn.Parent = frame
+local function startFly()
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    bodyVel = Instance.new("BodyVelocity")
+    bodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    bodyVel.Velocity = Vector3.new(0, 0, 0)
+    bodyVel.Parent = char.HumanoidRootPart
+    
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+    bodyGyro.CFrame = char.HumanoidRootPart.CFrame
+    bodyGyro.Parent = char.HumanoidRootPart
+    
+    char.Humanoid.PlatformStand = true
+end
+
+local function stopFly()
+    if bodyVel then bodyVel:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+    local char = player.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.PlatformStand = false
+    end
+end
+
+flyBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    flyBtn.Text = flyEnabled and "Fly : ON" or "Fly : OFF"
+    if flyEnabled then startFly() else stopFly() end
+end)
 
 -------------------------------------------------
 -- MINI TP GUI
 -------------------------------------------------
-
 local function createMiniPing()
+    if miniFrame then miniFrame:Destroy() end
+    miniFrame = Instance.new("Frame")
+    miniFrame.Size = UDim2.new(0, 160, 0, 70)
+    miniFrame.Position = UDim2.new(0.7, 0, 0.6, 0)
+    miniFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    miniFrame.Active = true
+    miniFrame.Draggable = true
+    miniFrame.Parent = gui
 
-	if miniFrame then
-		miniFrame:Destroy()
-	end
+    local miniBtn = Instance.new("TextButton")
+    miniBtn.Size = UDim2.new(0, 140, 0, 35)
+    miniBtn.Position = UDim2.new(0, 10, 0, 15)
+    miniBtn.Text = "TP Ping"
+    miniBtn.Parent = miniFrame
 
-	miniFrame = Instance.new("Frame")
-	miniFrame.Size = UDim2.new(0,160,0,70)
-	miniFrame.Position = UDim2.new(0.7,0,0.6,0)
-	miniFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	miniFrame.Active = true
-	miniFrame.Draggable = true
-	miniFrame.Parent = gui
-
-	local miniBtn = Instance.new("TextButton")
-	miniBtn.Size = UDim2.new(0,140,0,35)
-	miniBtn.Position = UDim2.new(0,10,0,15)
-	miniBtn.Text = "TP Ping"
-	miniBtn.Parent = miniFrame
-
-	miniBtn.MouseButton1Click:Connect(function()
-		if pingPosition then
-			local char = player.Character
-			if char then
-				char:MoveTo(pingPosition)
-			end
-		end
-	end)
-
+    miniBtn.MouseButton1Click:Connect(function()
+        if pingPosition and player.Character then
+            player.Character:MoveTo(pingPosition)
+        end
+    end)
 end
 
 -------------------------------------------------
--- PLACE PING
+-- CONNEXIONS
 -------------------------------------------------
-
 pingBtn.MouseButton1Click:Connect(function()
-
-	local target = mouse.Hit
-
-	if target then
-		pingPosition = target.Position
-		createMiniPing()
-	end
-
+    if mouse.Hit then
+        pingPosition = mouse.Hit.Position
+        createMiniPing()
+    end
 end)
-
--------------------------------------------------
--- TP PING
--------------------------------------------------
 
 tpBtn.MouseButton1Click:Connect(function()
-
-	if pingPosition then
-
-		local char = player.Character
-		if char then
-			char:MoveTo(pingPosition)
-		end
-
-	end
-
+    if pingPosition and player.Character then
+        player.Character:MoveTo(pingPosition)
+    end
 end)
-
--------------------------------------------------
--- NOCLIP
--------------------------------------------------
 
 noclipBtn.MouseButton1Click:Connect(function()
-
-	noclipEnabled = not noclipEnabled
-	noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
-
+    noclipEnabled = not noclipEnabled
+    noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
 end)
 
-RunService.Stepped:Connect(function()
+-- Boucle de mise à jour (Noclip & Fly)
+RunService.RenderStepped:Connect(function()
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
-	if noclipEnabled then
+    -- Gestion Noclip
+    if noclipEnabled then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
 
-		local char = player.Character
+    -- Gestion Mouvement Fly
+    if flyEnabled and bodyVel and bodyGyro then
+        local cam = workspace.CurrentCamera
+        local lookVec = cam.CFrame.LookVector
+        local moveVec = Vector3.new(0, 0, 0)
 
-		if char then
-			for _,v in pairs(char:GetDescendants()) do
-				if v:IsA("BasePart") then
-					v.CanCollide = false
-				end
-			end
-		end
+        -- Contrôles clavier
+        local UserInputService = game:GetService("UserInputService")
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVec = moveVec + lookVec end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVec = moveVec - lookVec end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVec = moveVec - cam.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVec = moveVec + cam.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveVec = moveVec + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveVec = moveVec - Vector3.new(0, 1, 0) end
 
-	end
-
-end)
-
--------------------------------------------------
--- FLY SYSTEM (sans interface)
--------------------------------------------------
-
-local function startFly()
-
-	local char = player.Character
-	local root = char:WaitForChild("HumanoidRootPart")
-
-	bodyVelocity = Instance.new("BodyVelocity")
-	bodyVelocity.MaxForce = Vector3.new(9e9,9e9,9e9)
-	bodyVelocity.Velocity = Vector3.new(0,0,0)
-	bodyVelocity.Parent = root
-
-	bodyGyro = Instance.new("BodyGyro")
-	bodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
-	bodyGyro.CFrame = root.CFrame
-	bodyGyro.Parent = root
-
-	RunService.RenderStepped:Connect(function()
-
-		if not flying then return end
-
-		local cam = workspace.CurrentCamera
-		local move = Vector3.new()
-
-		if UIS:IsKeyDown(Enum.KeyCode.W) then
-			move = move + cam.CFrame.LookVector
-		end
-
-		if UIS:IsKeyDown(Enum.KeyCode.S) then
-			move = move - cam.CFrame.LookVector
-		end
-
-		if UIS:IsKeyDown(Enum.KeyCode.A) then
-			move = move - cam.CFrame.RightVector
-		end
-
-		if UIS:IsKeyDown(Enum.KeyCode.D) then
-			move = move + cam.CFrame.RightVector
-		end
-
-		if UIS:IsKeyDown(Enum.KeyCode.Space) then
-			move = move + Vector3.new(0,1,0)
-		end
-
-		if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then
-			move = move - Vector3.new(0,1,0)
-		end
-
-		bodyVelocity.Velocity = move * flySpeed
-		bodyGyro.CFrame = cam.CFrame
-
-	end)
-
-end
-
-local function stopFly()
-
-	if bodyVelocity then
-		bodyVelocity:Destroy()
-	end
-
-	if bodyGyro then
-		bodyGyro:Destroy()
-	end
-
-end
-
-flyBtn.MouseButton1Click:Connect(function()
-
-	flying = not flying
-	flyBtn.Text = flying and "Fly : ON" or "Fly : OFF"
-
-	if flying then
-		startFly()
-	else
-		stopFly()
-	end
-
+        bodyVel.Velocity = moveVec * flySpeed
+        bodyGyro.CFrame = cam.CFrame
+    end
 end)
