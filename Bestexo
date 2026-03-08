@@ -1,12 +1,15 @@
 local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
 local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
 
 local pingPosition = nil
 local noclipEnabled = false
-local infJumpEnabled = false
+local flying = false
 local miniFrame
+
+local bv
+local bg
+local flyConnection
 
 -- GUI
 local gui = Instance.new("ScreenGui")
@@ -54,12 +57,12 @@ noclipBtn.Position = UDim2.new(0,10,0,100)
 noclipBtn.Text = "Noclip : OFF"
 noclipBtn.Parent = frame
 
--- INFINITE JUMP
-local jumpBtn = Instance.new("TextButton")
-jumpBtn.Size = UDim2.new(0,200,0,35)
-jumpBtn.Position = UDim2.new(0,10,0,145)
-jumpBtn.Text = "InfiniteJump : OFF"
-jumpBtn.Parent = frame
+-- AIR MODE (FLY)
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(0,200,0,35)
+flyBtn.Position = UDim2.new(0,10,0,145)
+flyBtn.Text = "Air Mode : OFF"
+flyBtn.Parent = frame
 
 -------------------------------------------------
 -- MINI TP GUI
@@ -86,14 +89,12 @@ local function createMiniPing()
 	miniBtn.Parent = miniFrame
 
 	miniBtn.MouseButton1Click:Connect(function()
-
 		if pingPosition then
 			local char = player.Character
 			if char then
 				char:MoveTo(pingPosition)
 			end
 		end
-
 	end)
 
 end
@@ -103,14 +104,11 @@ end
 -------------------------------------------------
 
 pingBtn.MouseButton1Click:Connect(function()
-
 	local target = mouse.Hit
-
 	if target then
 		pingPosition = target.Position
 		createMiniPing()
 	end
-
 end)
 
 -------------------------------------------------
@@ -118,16 +116,12 @@ end)
 -------------------------------------------------
 
 tpBtn.MouseButton1Click:Connect(function()
-
 	if pingPosition then
-
 		local char = player.Character
 		if char then
 			char:MoveTo(pingPosition)
 		end
-
 	end
-
 end)
 
 -------------------------------------------------
@@ -135,18 +129,13 @@ end)
 -------------------------------------------------
 
 noclipBtn.MouseButton1Click:Connect(function()
-
 	noclipEnabled = not noclipEnabled
 	noclipBtn.Text = noclipEnabled and "Noclip : ON" or "Noclip : OFF"
-
 end)
 
 RunService.Stepped:Connect(function()
-
 	if noclipEnabled then
-
 		local char = player.Character
-
 		if char then
 			for _,v in pairs(char:GetDescendants()) do
 				if v:IsA("BasePart") then
@@ -154,44 +143,61 @@ RunService.Stepped:Connect(function()
 				end
 			end
 		end
-
 	end
-
 end)
 
 -------------------------------------------------
--- INFINITE JUMP + SPEED
+-- AIR MODE (FLY)
 -------------------------------------------------
 
-jumpBtn.MouseButton1Click:Connect(function()
+local flySpeed = 100
 
-	infJumpEnabled = not infJumpEnabled
-	jumpBtn.Text = infJumpEnabled and "InfiniteJump : ON" or "InfiniteJump : OFF"
+flyBtn.MouseButton1Click:Connect(function()
+
+	flying = not flying
+	flyBtn.Text = flying and "Air Mode : ON" or "Air Mode : OFF"
 
 	local char = player.Character
-	if char then
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		if hum then
-			if infJumpEnabled then
-				hum.WalkSpeed = 100
-			else
-				hum.WalkSpeed = 16
-			end
+	if not char then return end
+
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+
+	if flying then
+
+		humanoid.WalkSpeed = 100
+
+		bv = Instance.new("BodyVelocity")
+		bv.MaxForce = Vector3.new(9e9,9e9,9e9)
+		bv.Parent = hrp
+
+		bg = Instance.new("BodyGyro")
+		bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
+		bg.CFrame = hrp.CFrame
+		bg.Parent = hrp
+
+		flyConnection = RunService.RenderStepped:Connect(function()
+
+			local cam = workspace.CurrentCamera
+			local move = humanoid.MoveDirection
+
+			bv.Velocity = cam.CFrame:VectorToWorldSpace(move) * flySpeed
+			bg.CFrame = cam.CFrame
+
+		end)
+
+	else
+
+		humanoid.WalkSpeed = 16
+
+		if flyConnection then
+			flyConnection:Disconnect()
+			flyConnection = nil
 		end
-	end
 
-end)
+		if bv then bv:Destroy() end
+		if bg then bg:Destroy() end
 
-UIS.JumpRequest:Connect(function()
-
-	if infJumpEnabled then
-		local char = player.Character
-		if char then
-			local hum = char:FindFirstChildOfClass("Humanoid")
-			if hum then
-				hum:ChangeState(Enum.HumanoidStateType.Jumping)
-			end
-		end
 	end
 
 end)
